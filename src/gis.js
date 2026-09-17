@@ -119,7 +119,7 @@ export function buildingHeight(p) {
  * safely under the server's 2000-record cap.
  * Each feature gets numeric `h` (height) and `year` properties.
  */
-export async function fetchBuildings(lng, lat, boxSize = 550) {
+export async function fetchBuildings(lng, lat, boxSize = 800) {
   const halfSize = boxSize / 2;
   const bbox = boxAround(lng, lat, halfSize);
   const json = await queryLayer(LAYERS.buildings, {
