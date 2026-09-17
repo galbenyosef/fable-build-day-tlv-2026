@@ -223,7 +223,7 @@ export async function plans(box) {
     spatialRel: "esriSpatialRelIntersects",
     outFields:
       "id_taba,taba,shem_taba,t_status,tr_hafkada,tr_matan_tokef,megurim_yechidot,sach_shetach,url_documents",
-    maxAllowableOffset: "2",
+    maxAllowableOffset: "0.00002",
     resultRecordCount: "200",
   });
 }
