@@ -166,7 +166,7 @@ export async function fetchBuildings(lng, lat, boxSize = 1600) {
  */
 export async function permits(box) {
   return queryLayer(LAYERS.permits, {
-    where: "yechidot_diyur>0",
+    where: "yechidot_diyur>=10",
     geometry: box.join(","),
     geometryType: "esriGeometryEnvelope",
     inSR: "4326",
