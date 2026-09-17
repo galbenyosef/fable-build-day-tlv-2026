@@ -45,6 +45,56 @@ body {
   font-weight: 600;
 }
 
+.mode-pill {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.mode-pill.future {
+  color: #eef1f6;
+  background: rgba(59, 91, 219, 0.45);
+  border-color: #3b5bdb;
+}
+
+.legend {
+  margin: 10px 0 0;
+  padding: 8px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 3px;
+}
+
+.swatch {
+  flex: none;
+  width: 22px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Same stops as the buildings-3d interpolate in main.js: 1930 → 2025. */
+.swatch-years {
+  background: linear-gradient(90deg, #f3e2b6, #e9dcc4, #d9d9d6, #c9ccd2);
+}
+
 .panel form {
   display: flex;
   gap: 6px;

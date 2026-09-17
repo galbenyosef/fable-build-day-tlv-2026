@@ -9,7 +9,7 @@
     <div id="map"></div>
 
     <section id="panel" class="panel">
-      <h1>Tel Aviv 2035</h1>
+      <h1>Tel Aviv 2035 <span id="mode" class="mode-pill">Today</span></h1>
       <form id="address-form" autocomplete="off">
         <input
           id="address"
@@ -32,6 +32,11 @@
         <span>Show 2035</span>
         <a id="reread" class="reread" href="#" hidden title="Clear the cache for this area and read the permits again live">re-read</a>
       </label>
+      <ul class="legend" aria-label="Legend">
+        <li><span class="swatch swatch-years"></span>cream to grey: today's buildings, older to newer</li>
+        <li><span class="swatch" style="background: #8d9096"></span>mid grey: year unknown</li>
+        <li><span class="swatch" style="background: #3b5bdb"></span>solid blue: permit issued, height read by Fable</li>
+      </ul>
     </section>
 
     <aside id="card" class="card" hidden>

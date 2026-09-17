@@ -315,8 +315,12 @@ async function loadPermits(place, generation) {
   await readPermits(place, generation);
 }
 
+const modePill = $("mode");
+
 show2035.addEventListener("change", () => {
   map.setLayoutProperty("permits", "visibility", show2035.checked ? "visible" : "none");
+  modePill.textContent = show2035.checked ? "2035" : "Today";
+  modePill.classList.toggle("future", show2035.checked);
 });
 
 let currentPlace = VENUE;
