@@ -9,6 +9,7 @@ export const LAYERS = {
   addresses: 527,
   buildings: 513,
   permits: 772,
+  plans: 528,
 };
 
 export const AERIAL_YEARS = [
@@ -142,13 +143,13 @@ export async function fetchBuildings(lng, lat, boxSize = 550) {
 
 /**
  * Query layer 772 (issued building permits) inside a bounding box
- * [minLng, minLat, maxLng, maxLat]. Only requests with more than 20 homes,
+ * [minLng, minLat, maxLng, maxLat]. Only requests with at least one home,
  * newest first. The layer repeats one permit per plot polygon, so callers
  * should dedupe on permission_num (see dedupePermits).
  */
 export async function permits(box) {
   return queryLayer(LAYERS.permits, {
-    where: "yechidot_diyur>20",
+    where: "yechidot_diyur>0",
     geometry: box.join(","),
     geometryType: "esriGeometryEnvelope",
     inSR: "4326",
@@ -173,10 +174,10 @@ export function dedupePermits(features) {
 }
 
 /**
- * Permits for the same square box used by fetchBuildings, deduped, with the
+ * Permits for a wider (800 m) square box than fetchBuildings, deduped, with the
  * numeric `h` fallback height the "permits" layer uses until the model answers.
  */
-export async function fetchPermits(lng, lat, boxSize = 550) {
+export async function fetchPermits(lng, lat, boxSize = 800) {
   const bbox = boxAround(lng, lat, boxSize / 2);
   const json = await permits(bbox);
   const features = dedupePermits(json.features).map((f) => {
@@ -205,4 +206,89 @@ export function permitHeight(p) {
   if (cls.includes("29")) return 32;
   if (cls.includes("13")) return 16;
   return 12;
+}
+
+// ---------------------------------------------------------------- plans (layer 528)
+
+/**
+ * Query layer 528 (statutory plans) intersecting a bounding box. Only local plans
+ * (not city-wide) with more than 50 homes that are not cancelled.
+ */
+export async function plans(box) {
+  return queryLayer(LAYERS.plans, {
+    where: "t_hekef<>'כלל עירונית' AND megurim_yechidot>50 AND t_status<>'תכנית מבוטלת'",
+    geometry: box.join(","),
+    geometryType: "esriGeometryEnvelope",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields:
+      "id_taba,taba,shem_taba,t_status,tr_hafkada,tr_matan_tokef,megurim_yechidot,sach_shetach,url_documents",
+    maxAllowableOffset: "2",
+    resultRecordCount: "200",
+  });
+}
+
+/** Indicative floors from a plan's housing units: a rough envelope, not a design. */
+export function planFloors(homes) {
+  const n = Number(homes) || 0;
+  if (n < 100) return 6;
+  if (n < 300) return 10;
+  if (n < 1000) return 16;
+  return 24;
+}
+
+function walkCoords(coords, fn) {
+  if (typeof coords[0] === "number") fn(coords);
+  else for (const c of coords) walkCoords(c, fn);
+}
+
+/** Diagonal of a geometry's bounding box, in metres (approximate). */
+export function bboxDiagonalMetres(geometry) {
+  if (!geometry?.coordinates) return 0;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  walkCoords(geometry.coordinates, ([x, y]) => {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  });
+  if (!Number.isFinite(minX)) return 0;
+  const midLat = ((minY + maxY) / 2) * (Math.PI / 180);
+  const dx = (maxX - minX) * 111320 * Math.cos(midLat);
+  const dy = (maxY - minY) * 111320;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Plans for an 800 m box around the point. Each feature gets:
+ *   taba (trimmed), homes, floors, h (indicative height), deposited (bool),
+ *   outline (true for district-wide plans whose bbox diagonal exceeds 1.2 km:
+ *   those are drawn as a line, not extruded).
+ */
+export async function fetchPlans(lng, lat, boxSize = 800) {
+  const bbox = boxAround(lng, lat, boxSize / 2);
+  const json = await plans(bbox);
+  const features = (json.features || [])
+    .filter((f) => f.geometry && /Polygon/.test(f.geometry.type))
+    .map((f) => {
+      const p = f.properties || {};
+      const homes = Number(p.megurim_yechidot) || 0;
+      const floors = planFloors(homes);
+      const status = String(p.t_status || "");
+      const outline = bboxDiagonalMetres(f.geometry) > 1200;
+      return {
+        ...f,
+        properties: {
+          ...p,
+          taba: String(p.taba || "").trim(),
+          shem_taba: String(p.shem_taba || "").trim(),
+          homes,
+          floors,
+          h: outline ? 0 : floors * 3.2,
+          deposited: status.includes("הפקדה"),
+          outline,
+        },
+      };
+    });
+  return { type: "FeatureCollection", features };
 }

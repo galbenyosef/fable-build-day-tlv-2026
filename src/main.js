@@ -7,6 +7,7 @@ import {
   findAddress,
   fetchBuildings,
   fetchPermits,
+  fetchPlans,
   permitHeight,
 } from "./gis.js";
 
@@ -26,8 +27,10 @@ const cardBody = $("card-body");
 const show2035 = $("show-2035");
 const rereadLink = $("reread");
 
+let plansCount = 0;
 function setStatus(text, isError = false) {
-  statusEl.textContent = text;
+  const suffix = !isError && plansCount > 0 ? ` · ${plansCount} plans` : "";
+  statusEl.textContent = text + suffix;
   statusEl.classList.toggle("error", isError);
 }
 
@@ -50,6 +53,10 @@ const map = new maplibregl.Map({
         data: { type: "FeatureCollection", features: [] },
       },
       permits: {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      },
+      plans: {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       },
@@ -82,12 +89,38 @@ const map = new maplibregl.Map({
         },
       },
       {
+        id: "plans-outline",
+        type: "line",
+        source: "plans",
+        filter: ["==", ["get", "outline"], true],
+        layout: { visibility: "none" },
+        paint: {
+          "line-color": ["case", ["get", "deposited"], "#f06595", "#748ffc"],
+          "line-width": 2.5,
+          "line-dasharray": [3, 2],
+          "line-opacity": 0.9,
+        },
+      },
+      {
+        id: "plans",
+        type: "fill-extrusion",
+        source: "plans",
+        filter: ["==", ["get", "outline"], false],
+        layout: { visibility: "none" },
+        paint: {
+          "fill-extrusion-height": ["*", ["get", "h"], 0],
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": 0.55,
+          "fill-extrusion-color": ["case", ["get", "deposited"], "#f06595", "#748ffc"],
+        },
+      },
+      {
         id: "permits",
         type: "fill-extrusion",
         source: "permits",
         layout: { visibility: "none" },
         paint: {
-          "fill-extrusion-height": ["get", "h"],
+          "fill-extrusion-height": ["*", ["get", "h"], 0],
           "fill-extrusion-base": 0,
           "fill-extrusion-opacity": 0.95,
           "fill-extrusion-color": ["case", ["to-boolean", ["get", "read"]], "#3b5bdb", "#8ea0e8"],
@@ -244,7 +277,7 @@ async function readPermits(place, generation, force = false) {
   const all = permitsFC.features;
   const total = all.length;
   if (total === 0) {
-    setStatus(`No permits with more than 20 homes near ${place.street} ${place.number}`);
+    setStatus(`No permits with homes near ${place.street} ${place.number}`);
     return;
   }
 
@@ -315,12 +348,85 @@ async function loadPermits(place, generation) {
   await readPermits(place, generation);
 }
 
+// ---------------------------------------------------------------- plans
+
+const planById = new Map();
+
+async function loadPlans(place, generation) {
+  try {
+    const fc = await fetchPlans(place.lng, place.lat);
+    if (generation !== loadGeneration) return;
+    planById.clear();
+    for (const f of fc.features) planById.set(String(f.properties.id_taba), f);
+    plansCount = fc.features.length;
+    map.getSource("plans").setData(fc);
+  } catch (err) {
+    console.warn("plans failed", err);
+  }
+}
+
+function showPlanCard(f) {
+  const p = f.properties;
+  const date = p.deposited ? formatDate(p.tr_hafkada) : formatDate(p.tr_matan_tokef);
+  const rows = [
+    ["Plan", p.taba || p.id_taba],
+    ["Status", p.t_status || "unknown"],
+    ["Homes", String(p.homes)],
+    [p.deposited ? "Deposited" : "Approved", date],
+  ];
+  if (!p.outline) rows.splice(3, 0, ["Height", `${Math.round(p.h)} m · ${p.floors} floors`]);
+  const link = p.url_documents
+    ? `<a class="card-link" href="${escapeHtml(String(p.url_documents))}" target="_blank" rel="noopener">Plan documents ↗</a>`
+    : "";
+  card.classList.add("permit");
+  cardBody.innerHTML = `
+    <h2 dir="rtl" lang="he">${escapeHtml(p.shem_taba || p.taba || "תכנית")}</h2>
+    <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(String(v))}</dd>`).join("")}</dl>
+    <p class="evidence">Indicative height, from the plan's housing units — not a design.</p>
+    ${link}`;
+  card.hidden = false;
+}
+
+// ---------------------------------------------------------------- 2035 rise
+
+const RISE_LAYERS = ["permits", "plans"];
+const FUTURE_LAYERS = ["permits", "plans", "plans-outline"];
+let riseFrame = 0;
+
+function setRiseFactor(factor) {
+  for (const id of RISE_LAYERS) {
+    map.setPaintProperty(id, "fill-extrusion-height", ["*", ["get", "h"], factor]);
+  }
+}
+
+function animateRise(from, to, duration, onDone) {
+  cancelAnimationFrame(riseFrame);
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    setRiseFactor(from + (to - from) * eased);
+    if (t < 1) riseFrame = requestAnimationFrame(step);
+    else if (onDone) onDone();
+  };
+  riseFrame = requestAnimationFrame(step);
+}
+
 const modePill = $("mode");
 
 show2035.addEventListener("change", () => {
-  map.setLayoutProperty("permits", "visibility", show2035.checked ? "visible" : "none");
   modePill.textContent = show2035.checked ? "2035" : "Today";
   modePill.classList.toggle("future", show2035.checked);
+  if (show2035.checked) {
+    for (const id of FUTURE_LAYERS) map.setLayoutProperty(id, "visibility", "visible");
+    animateRise(0, 1, 1600);
+    map.easeTo({ bearing: map.getBearing() + 35, pitch: 66, duration: 3200, essential: true });
+  } else {
+    animateRise(1, 0, 600, () => {
+      if (show2035.checked) return;
+      for (const id of FUTURE_LAYERS) map.setLayoutProperty(id, "visibility", "none");
+    });
+  }
 });
 
 let currentPlace = VENUE;
@@ -410,7 +516,9 @@ function showPermitCard(f) {
 
 // One handler for both layers: a permit tower wins over the building under it.
 map.on("click", (e) => {
-  const hits = map.queryRenderedFeatures(e.point, { layers: ["permits", "buildings-3d"] });
+  const hits = map.queryRenderedFeatures(e.point, {
+    layers: ["permits", "plans", "plans-outline", "buildings-3d"],
+  });
   if (!hits.length) return;
   const permitHit = hits.find((h) => h.layer.id === "permits");
   if (permitHit) {
@@ -420,10 +528,18 @@ map.on("click", (e) => {
       return;
     }
   }
+  const planHit = hits.find((h) => h.layer.id === "plans" || h.layer.id === "plans-outline");
+  if (planHit) {
+    const f = planById.get(String(planHit.properties.id_taba));
+    if (f) {
+      showPlanCard(f);
+      return;
+    }
+  }
   const building = hits.find((h) => h.layer.id === "buildings-3d");
   if (building) showCard(building.properties);
 });
-for (const layer of ["buildings-3d", "permits"]) {
+for (const layer of ["buildings-3d", "permits", "plans"]) {
   map.on("mouseenter", layer, () => {
     map.getCanvas().style.cursor = "pointer";
   });
@@ -450,8 +566,9 @@ async function goTo(text) {
     setStatus(`Loading buildings around ${place.street} ${place.number}…`);
     const generation = ++loadGeneration;
     currentPlace = place;
+    plansCount = 0;
     await loadBuildings(place);
-    await loadPermits(place, generation);
+    await Promise.all([loadPlans(place, generation), loadPermits(place, generation)]);
   } catch (err) {
     setStatus(err.message || String(err), true);
   } finally {
@@ -470,7 +587,7 @@ map.on("load", async () => {
     setStatus("Loading buildings…");
     const generation = ++loadGeneration;
     await loadBuildings(VENUE);
-    await loadPermits(VENUE, generation);
+    await Promise.all([loadPlans(VENUE, generation), loadPermits(VENUE, generation)]);
   } catch (err) {
     setStatus(err.message || String(err), true);
   }
