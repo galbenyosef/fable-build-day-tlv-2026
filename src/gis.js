@@ -136,7 +136,7 @@ export function buildingHeight(p) {
  * safely under the server's 2000-record cap.
  * Each feature gets numeric `h` (height) and `year` properties.
  */
-export async function fetchBuildings(lng, lat, boxSize = 1100) {
+export async function fetchBuildings(lng, lat, boxSize = 1600) {
   const halfSize = boxSize / 2;
   const bbox = boxAround(lng, lat, halfSize);
   const json = await queryLayerAll(LAYERS.buildings, {
@@ -172,7 +172,7 @@ export async function permits(box) {
     inSR: "4326",
     spatialRel: "esriSpatialRelIntersects",
     orderByFields: "permission_date DESC",
-    resultRecordCount: "150",
+    resultRecordCount: "200",
   });
 }
 
@@ -194,7 +194,7 @@ export function dedupePermits(features) {
  * Permits for a wider (800 m) square box than fetchBuildings, deduped, with the
  * numeric `h` fallback height the "permits" layer uses until the model answers.
  */
-export async function fetchPermits(lng, lat, boxSize = 1100) {
+export async function fetchPermits(lng, lat, boxSize = 1600) {
   const bbox = boxAround(lng, lat, boxSize / 2);
   const json = await permits(bbox);
   const features = dedupePermits(json.features).map((f) => {
@@ -282,7 +282,7 @@ export function bboxDiagonalMetres(geometry) {
  *   outline (true for district-wide plans whose bbox diagonal exceeds 1.2 km:
  *   those are drawn as a line, not extruded).
  */
-export async function fetchPlans(lng, lat, boxSize = 1100) {
+export async function fetchPlans(lng, lat, boxSize = 1600) {
   const bbox = boxAround(lng, lat, boxSize / 2);
   const json = await plans(bbox);
   const features = (json.features || [])
