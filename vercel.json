@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/gis/:path*",
+      "destination": "https://gisn.tel-aviv.gov.il/arcgis/rest/services/IView2/MapServer/:path*"
+    },
+    {
+      "source": "/ortho/:path*",
+      "destination": "https://gisn.tel-aviv.gov.il/arcgis/rest/services/WM/:path*"
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "https://gisn.tel-aviv.gov.il/:path*"
+    }
+  ]
+}

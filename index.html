@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="he">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tel Aviv 2035</title>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <section id="panel" class="panel">
+      <h1>Tel Aviv 2035</h1>
+      <form id="address-form" autocomplete="off">
+        <input
+          id="address"
+          type="text"
+          dir="rtl"
+          value="המרד 25"
+          placeholder="רחוב ומספר"
+          aria-label="כתובת"
+        />
+        <button type="submit">Go</button>
+      </form>
+      <div id="status" class="status" aria-live="polite">Loading map…</div>
+      <label class="slider-row">
+        <span>Aerial</span>
+        <input id="year" type="range" min="0" max="12" step="1" value="12" />
+        <output id="year-label" for="year">2025</output>
+      </label>
+      <label class="check-row">
+        <input id="show-2035" type="checkbox" disabled />
+        <span>Show 2035</span>
+      </label>
+    </section>
+
+    <aside id="card" class="card" hidden>
+      <button id="card-close" class="card-close" aria-label="Close">×</button>
+      <div id="card-body"></div>
+    </aside>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
