@@ -45,6 +45,23 @@ export async function queryLayer(layerId, params = {}) {
   return json;
 }
 
+/** Page through a layer query until a page comes back short (the server caps at 2000). */
+export async function queryLayerAll(layerId, params = {}, pageSize = 2000, maxPages = 4) {
+  const features = [];
+  let json = null;
+  for (let page = 0; page < maxPages; page++) {
+    json = await queryLayer(layerId, {
+      ...params,
+      resultRecordCount: String(pageSize),
+      resultOffset: String(page * pageSize),
+    });
+    const batch = json.features || [];
+    features.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return { ...(json || { type: "FeatureCollection" }), features };
+}
+
 /**
  * Split a Hebrew address like "המרד 25" or "הרצל 91א" into street and house number.
  * Returns null when no number is present.
@@ -119,10 +136,10 @@ export function buildingHeight(p) {
  * safely under the server's 2000-record cap.
  * Each feature gets numeric `h` (height) and `year` properties.
  */
-export async function fetchBuildings(lng, lat, boxSize = 800) {
+export async function fetchBuildings(lng, lat, boxSize = 1100) {
   const halfSize = boxSize / 2;
   const bbox = boxAround(lng, lat, halfSize);
-  const json = await queryLayer(LAYERS.buildings, {
+  const json = await queryLayerAll(LAYERS.buildings, {
     geometry: bbox.join(","),
     geometryType: "esriGeometryEnvelope",
     inSR: "4326",
@@ -155,7 +172,7 @@ export async function permits(box) {
     inSR: "4326",
     spatialRel: "esriSpatialRelIntersects",
     orderByFields: "permission_date DESC",
-    resultRecordCount: "60",
+    resultRecordCount: "150",
   });
 }
 
@@ -177,7 +194,7 @@ export function dedupePermits(features) {
  * Permits for a wider (800 m) square box than fetchBuildings, deduped, with the
  * numeric `h` fallback height the "permits" layer uses until the model answers.
  */
-export async function fetchPermits(lng, lat, boxSize = 800) {
+export async function fetchPermits(lng, lat, boxSize = 1100) {
   const bbox = boxAround(lng, lat, boxSize / 2);
   const json = await permits(bbox);
   const features = dedupePermits(json.features).map((f) => {
@@ -265,7 +282,7 @@ export function bboxDiagonalMetres(geometry) {
  *   outline (true for district-wide plans whose bbox diagonal exceeds 1.2 km:
  *   those are drawn as a line, not extruded).
  */
-export async function fetchPlans(lng, lat, boxSize = 800) {
+export async function fetchPlans(lng, lat, boxSize = 1100) {
   const bbox = boxAround(lng, lat, boxSize / 2);
   const json = await plans(bbox);
   const features = (json.features || [])
