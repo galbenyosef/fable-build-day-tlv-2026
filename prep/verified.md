@@ -20,6 +20,4 @@ Allowed preparation per the brief: verified endpoints, sample payloads, warm too
 - The server-side call needs `ANTHROPIC_API_KEY`. Not set in this shell and no `.env` in the repo yet. Vite's `loadEnv` reads `.env`; Vercel needs it as a project env var.
 
 ## Draft code from before the freeze
-A working draft (map on the 2025 aerial, GIS client, permit extraction endpoint) exists outside the repo at
-`%TEMP%\claude\C--Users-attiu-local-ai-projects-tlv-claude-code-build-day-2026-09-17\be777038-45eb-4b36-b494-7aed3d6c2696\scratchpad\draft-app`.
-It is reference only; the hour's code is written fresh.
+A working draft (map on the 2025 aerial, GIS client, permit extraction endpoint) was written outside the repo before the hour and kept as reference only; the hour's code was written fresh.

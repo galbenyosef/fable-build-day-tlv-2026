@@ -1,5 +1,7 @@
 # Tel Aviv 2035 (tlvnext.com)
 
+> **Frozen build.** This repository is the state of *Tel Aviv 2035* as demoed at the Fable 5.1 Build Day, Tel Aviv, 17 September 2026, where it won the Breakthrough track. The tag `build-day-2026-09-17-winner` marks the last commit before the 20:20 cutoff; the commits after it only add this note and the making-of. The story of the hour is in [MAKING_OF.md](MAKING_OF.md); the product continues at [tlvnext.com](https://tlvnext.com).
+
 A one-page web app that shows today's Tel Aviv skyline in 3D on the city's own aerial photos, then raises the buildings that already hold a building permit to the floors that Claude read from each permit's Hebrew request text. Type a Hebrew address, see the street as it is today and as it will be in 2035, click any blue tower for its permit card, and press Verify to compare the number of homes the model read against the city's structured record. Claude is load-bearing at runtime, not a build-time helper: the height of every future tower comes from `claude-fable-5-1` reading unstructured permit text (`tochen_bakasha`, `sug_bakasha`, `hakala_melel`) through `api/extract.js` on each visit, and the city's own housing count is deliberately withheld from the model so the Verify button is an honest check rather than an echo.
 
 ## Run
