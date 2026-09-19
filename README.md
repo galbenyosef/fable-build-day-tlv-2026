@@ -1,6 +1,8 @@
 # Tel Aviv 2035 (tlvnext.com)
 
-> **Frozen build.** This repository is the state of *Tel Aviv 2035* as demoed at the Fable 5.1 Build Day, Tel Aviv, 17 September 2026, where it won the Breakthrough track. The tag `build-day-2026-09-17-winner` marks the last commit before the 20:20 cutoff; the commits after it only add this note and the making-of. The story of the hour is in [MAKING_OF.md](MAKING_OF.md); the product continues at [tlvnext.com](https://tlvnext.com).
+> **Frozen build.** This repository is the state of *Tel Aviv 2035* as demoed at the Fable 5.1 Build Day, Tel Aviv, 17 September 2026, where it won the Breakthrough track. The tag `build-day-2026-09-17-winner` marks the last commit before the 20:20 cutoff; the commits after it only add documentation, the licence and the data notice. The story of the hour is in [MAKING_OF.md](MAKING_OF.md); the product continues at [tlvnext.com](https://tlvnext.com).
+
+> **Code and data.** The code is MIT-licensed. The municipal data the app shows is not in this repository, is not covered by that licence and belongs to the Tel Aviv-Yafo Municipality; anyone who runs or adapts this code must follow the municipality's terms of use. Details in [NOTICE.md](NOTICE.md).
 
 A one-page web app that shows today's Tel Aviv skyline in 3D on the city's own aerial photos, then raises the buildings that already hold a building permit to the floors that Claude read from each permit's Hebrew request text. Type a Hebrew address, see the street as it is today and as it will be in 2035, click any blue tower for its permit card, and press Verify to compare the number of homes the model read against the city's structured record. Claude is load-bearing at runtime, not a build-time helper: the height of every future tower comes from `claude-fable-5-1` reading unstructured permit text (`tochen_bakasha`, `sug_bakasha`, `hakala_melel`) through `api/extract.js` on each visit, and the city's own housing count is deliberately withheld from the model so the Verify button is an honest check rather than an echo.
 
@@ -29,7 +31,7 @@ Everything comes from the Tel Aviv-Yafo municipal GIS at `https://gisn.tel-aviv.
 - **Layer 527, addresses**: resolves a Hebrew street and house number to a point.
 - **Layer 513, buildings**: today's footprints with `ms_komot`, `min_height`, `max_height`, `year`; extruded at `max_height - min_height` (fallback floors × 3.2 m, then 8 m), coloured by year, grey when the year is unknown.
 - **Layer 772, permits**: issued building permits with more than 20 homes, deduped on `permission_num`; the Hebrew request text is what Claude reads.
-- **Layer 528, plans** (stretch, not wired in this build): statutory plans with status, housing units and regulation documents.
+- **Layer 528, plans** (the stretch step, wired at 19:46): statutory plans with status, housing units and regulation documents; drawn as volumes at an indicative height derived from the housing units (pink deposited, blue in force), not as a design.
 
 Aerial photos are the city's orthophoto tiles, proxied at `/ortho` from `https://gisn.tel-aviv.gov.il/arcgis/rest/services/WM`: `/ortho/IView2Ortho{YEAR}WM/MapServer/tile/{z}/{y}/{x}` for the years 1997, 2002, 2005, 2008, 2011, 2014, 2017, 2020, 2021, 2022, 2023, 2024 and 2025 (Web Mercator, 256 px).
 
